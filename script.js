@@ -1,311 +1,430 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // DOM元素
-    const secretInput = document.getElementById('secretInput');
-    const toggleVisibilityBtn = document.getElementById('toggleVisibility');
-    const tokenCard = document.getElementById('tokenCard');
-    const tokenCode = document.getElementById('tokenCode');
-    const timerProgress = document.getElementById('timerProgress');
-    const secondsRemaining = document.getElementById('secondsRemaining');
-    const themeToggle = document.getElementById('themeToggle');
-    
-    // 状态变量
-    let updateInterval;
-    let currentSecret = '';
-    let digits = 6;
-    let period = 30;
-    let algorithm = 'SHA1';
-    
-    // 检查主题偏好
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
-        themeToggle.querySelector('i').className = 'fas fa-sun';
+/**
+ * TOTP 验证码生成器
+ * - 使用 Web Crypto API（HMAC-SHA1/256/512）
+ * - 标准 Base32 解码（RFC 4648）
+ * - 支持 otpauth:// URI 和裸密钥
+ * - rAF 驱动环形进度条，跨周期才重算 TOTP
+ */
+(() => {
+    'use strict';
+
+    // ---------- DOM ----------
+    const $ = (id) => document.getElementById(id);
+    const secretInput = $('secretInput');
+    const toggleVisibilityBtn = $('toggleVisibility');
+    const tokenCard = $('tokenCard');
+    const tokenCode = $('tokenCode');
+    const ringProgress = $('ringProgress');
+    const secondsRemaining = $('secondsRemaining');
+    const themeToggle = $('themeToggle');
+    const errorText = $('errorText');
+    const accountMeta = $('accountMeta');
+    const accountIssuer = $('accountIssuer');
+    const accountLabel = $('accountLabel');
+    const emptyState = $('emptyState');
+    const toast = $('toast');
+
+    // ---------- 常量 ----------
+    // 环形进度条周长 = 2π × 54
+    const RING_CIRCUMFERENCE = 2 * Math.PI * 54;
+
+    // ---------- 状态 ----------
+    /** @type {{secret: string, digits: number, period: number, algorithm: string, issuer: string, label: string} | null} */
+    let config = null;
+    let lastCounter = -1n;
+    let rafId = 0;
+    let debounceTimer = 0;
+    let copiedTimer = 0;
+
+    // ---------- Base32 解码（RFC 4648） ----------
+    const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+    function base32ToBytes(input) {
+        const cleaned = input.replace(/\s+/g, '').replace(/=+$/, '').toUpperCase();
+        if (!cleaned) throw new Error('密钥为空');
+
+        let bits = '';
+        for (const ch of cleaned) {
+            const v = BASE32_CHARS.indexOf(ch);
+            if (v === -1) throw new Error(`非法的 Base32 字符: ${ch}`);
+            bits += v.toString(2).padStart(5, '0');
+        }
+
+        const byteCount = Math.floor(bits.length / 8);
+        const bytes = new Uint8Array(byteCount);
+        for (let i = 0; i < byteCount; i++) {
+            bytes[i] = parseInt(bits.substr(i * 8, 8), 2);
+        }
+        return bytes;
     }
-    
-    // 事件监听器
-    secretInput.addEventListener('input', handleSecretInput);
-    toggleVisibilityBtn.addEventListener('click', toggleSecretVisibility);
-    tokenCode.addEventListener('click', copyToClipboard);
-    themeToggle.addEventListener('click', toggleTheme);
-    
-    // 处理密钥输入
-    function handleSecretInput() {
-        const secret = secretInput.value.trim();
-        
-        if (secret) {
-            // 尝试解析密钥并生成验证码
-            try {
-                const result = parseSecret(secret);
-                if (result.success) {
-                    currentSecret = result.secret;
-                    digits = result.digits;
-                    period = result.period;
-                    algorithm = result.algorithm;
-                    
-                    // 显示令牌并开始更新
-                    tokenCard.style.display = 'block';
-                    startTokenUpdate();
-                } else {
-                    // 如果密钥无效，隐藏令牌卡片
-                    tokenCard.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error parsing secret:', error);
-                tokenCard.style.display = 'none';
-            }
-        } else {
-            // 如果密钥为空，隐藏令牌卡片
-            tokenCard.style.display = 'none';
-            if (updateInterval) {
-                clearInterval(updateInterval);
-                updateInterval = null;
-            }
-        }
+
+    // ---------- HMAC（Web Crypto） ----------
+    async function hmac(keyBytes, msgBytes, algoName) {
+        const hashMap = { SHA1: 'SHA-1', SHA256: 'SHA-256', SHA512: 'SHA-512' };
+        const hash = hashMap[algoName] || 'SHA-1';
+        const key = await crypto.subtle.importKey(
+            'raw',
+            keyBytes,
+            { name: 'HMAC', hash },
+            false,
+            ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', key, msgBytes);
+        return new Uint8Array(sig);
     }
-    
-    // 解析密钥（普通Base32或otpauth URI）
-    function parseSecret(input) {
-        // 检查是否是otpauth URI
-        if (input.startsWith('otpauth://')) {
-            try {
-                const uri = new URL(input);
-                const params = new URLSearchParams(uri.search);
-                
-                // 提取密钥
-                const secret = params.get('secret');
-                if (!secret) {
-                    return { success: false, message: '未找到密钥参数' };
-                }
-                
-                // 提取其他参数
-                let digits = 6;
-                if (params.has('digits')) {
-                    const d = parseInt(params.get('digits'));
-                    if (d === 6 || d === 8) digits = d;
-                }
-                
-                let period = 30;
-                if (params.has('period')) {
-                    const p = parseInt(params.get('period'));
-                    if (p > 0) period = p;
-                }
-                
-                let algorithm = 'SHA1';
-                if (params.has('algorithm')) {
-                    const alg = params.get('algorithm').toUpperCase();
-                    if (['SHA1', 'SHA256', 'SHA512'].includes(alg)) {
-                        algorithm = alg;
-                    }
-                }
-                
-                return {
-                    success: true,
-                    secret: secret.replace(/\s/g, '').toUpperCase(),
-                    digits,
-                    period,
-                    algorithm
-                };
-                
-            } catch (e) {
-                return { success: false, message: '无效的URI格式' };
-            }
-        }
-        
-        // 普通Base32密钥
-        const cleanedSecret = input.replace(/\s/g, '').toUpperCase();
-        
-        // 验证是否是有效的Base32
-        if (!/^[A-Z2-7]+=*$/.test(cleanedSecret)) {
-            // 允许任何输入，即使不是标准Base32也尝试生成
-            return {
-                success: true,
-                secret: cleanedSecret,
-                digits: 6,
-                period: 30,
-                algorithm: 'SHA1'
-            };
-        }
-        
-        return {
-            success: true,
-            secret: cleanedSecret,
-            digits: 6,
-            period: 30,
-            algorithm: 'SHA1'
-        };
-    }
-    
-    // 开始令牌更新
-    function startTokenUpdate() {
-        // 清除现有的更新间隔
-        if (updateInterval) {
-            clearInterval(updateInterval);
-        }
-        
-        // 立即更新一次
-        updateToken();
-        
-        // 每秒更新一次
-        updateInterval = setInterval(updateToken, 1000);
-    }
-    
-    // 更新令牌
-    function updateToken() {
-        if (!currentSecret) return;
-        
-        try {
-            // 生成TOTP代码
-            const code = generateTOTP(currentSecret, digits, period, algorithm);
-            
-            // 计算剩余时间
-            const epoch = Math.floor(Date.now() / 1000);
-            const countdown = period - (epoch % period);
-            const progressPercent = (countdown / period) * 100;
-            
-            // 更新UI
-            tokenCode.textContent = formatCode(code);
-            secondsRemaining.textContent = countdown;
-            timerProgress.style.width = `${progressPercent}%`;
-            
-            // 如果剩余时间少于5秒，添加警告颜色
-            if (countdown <= 5) {
-                timerProgress.style.background = 'linear-gradient(90deg, #ff4d4d 0%, #ff8080 100%)';
-            } else {
-                timerProgress.style.background = '';
-            }
-            
-        } catch (error) {
-            console.error('令牌更新错误:', error);
-            tokenCode.textContent = '错误';
-        }
-    }
-    
-    // 生成TOTP代码
-    function generateTOTP(secret, digits, period, algorithm) {
-        // 解码Base32密钥
-        const key = _b32ToHex(secret);
-        
-        // 计算时间计数器
-        const epoch = Math.floor(Date.now() / 1000);
-        const counter = Math.floor(epoch / period);
-        
-        // 将计数器转换为16进制字符串，并填充为16个字符
-        const counterHex = counter.toString(16).padStart(16, '0');
-        
-        // 使用CryptoJS计算HMAC
-        let hmacObj;
-        switch (algorithm) {
-            case 'SHA256':
-                hmacObj = CryptoJS.HmacSHA256(CryptoJS.enc.Hex.parse(counterHex), CryptoJS.enc.Hex.parse(key));
-                break;
-            case 'SHA512':
-                hmacObj = CryptoJS.HmacSHA512(CryptoJS.enc.Hex.parse(counterHex), CryptoJS.enc.Hex.parse(key));
-                break;
-            default:
-                hmacObj = CryptoJS.HmacSHA1(CryptoJS.enc.Hex.parse(counterHex), CryptoJS.enc.Hex.parse(key));
-        }
-        
-        // 将HMAC结果转换为十六进制字符串
-        const hmac = hmacObj.toString(CryptoJS.enc.Hex);
-        
-        // 动态截断
-        const offset = parseInt(hmac.substring(hmac.length - 1), 16);
-        const truncatedHex = hmac.substr(offset * 2, 8);
-        
-        // 将截断后的十六进制转换为整数，并屏蔽最高位
-        let truncatedDecimal = parseInt(truncatedHex, 16) & 0x7fffffff;
-        
-        // 生成OTP
-        const otp = truncatedDecimal % Math.pow(10, digits);
+
+    // ---------- HOTP / TOTP ----------
+    async function hotp(keyBytes, counter, digits, algorithm) {
+        const msg = new Uint8Array(8);
+        new DataView(msg.buffer).setBigUint64(0, counter, false);
+        const mac = await hmac(keyBytes, msg, algorithm);
+        const offset = mac[mac.length - 1] & 0x0f;
+        const bin =
+            ((mac[offset] & 0x7f) << 24) |
+            (mac[offset + 1] << 16) |
+            (mac[offset + 2] << 8) |
+            mac[offset + 3];
+        const otp = bin % 10 ** digits;
         return otp.toString().padStart(digits, '0');
     }
-    
-    // Base32解码为十六进制字符串 (重命名并稍微混淆)
-    function _b32ToHex(b32str) {
-        const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-        let bits = '';
-        let hex = '';
-        
-        // 移除填充字符
-        b32str = b32str.replace(/=+$/, '');
-        
-        // 将每个Base32字符转换为5位二进制
-        for (let i = 0; i < b32str.length; i++) {
-            const val = charset.indexOf(b32str.charAt(i));
-            if (val === -1) throw new Error('无效的字符');
-            bits += val.toString(2).padStart(5, '0');
-        }
-        
-        // 将二进制转换为十六进制
-        for (let i = 0; i + 4 <= bits.length; i += 4) {
-            const chunk = bits.substr(i, 4);
-            hex += parseInt(chunk, 2).toString(16);
-        }
-        
-        return hex;
+
+    function counterFromEpoch(epochSec, period) {
+        return BigInt(Math.floor(epochSec / period));
     }
-    
-    // 格式化代码显示
-    function formatCode(code) {
-        if (code.length === 6) {
-            return `${code.substring(0, 3)} ${code.substring(3)}`;
-        } else if (code.length === 8) {
-            return `${code.substring(0, 4)} ${code.substring(4)}`;
+
+    // ---------- 输入解析 ----------
+    function parseInput(input) {
+        const trimmed = input.trim();
+        if (!trimmed) throw new Error('请输入密钥');
+
+        if (/^otpauth:\/\//i.test(trimmed)) {
+            return parseOtpauthUri(trimmed);
         }
+
+        const cleaned = trimmed.replace(/\s+/g, '').toUpperCase();
+        if (!/^[A-Z2-7]+=*$/.test(cleaned)) {
+            throw new Error('密钥包含非法字符（仅允许 A–Z 与 2–7）');
+        }
+        return {
+            secret: cleaned,
+            digits: 6,
+            period: 30,
+            algorithm: 'SHA1',
+            issuer: '',
+            label: '',
+        };
+    }
+
+    function parseOtpauthUri(raw) {
+        let uri;
+        try {
+            uri = new URL(raw);
+        } catch {
+            throw new Error('无效的 otpauth URI');
+        }
+        if (uri.protocol !== 'otpauth:') throw new Error('协议必须是 otpauth://');
+        if (uri.host.toLowerCase() !== 'totp') {
+            throw new Error(`暂不支持类型: ${uri.host}`);
+        }
+
+        const params = uri.searchParams;
+        const secret = params.get('secret');
+        if (!secret) throw new Error('URI 中缺少 secret 参数');
+
+        const rawLabel = decodeURIComponent(uri.pathname.replace(/^\//, ''));
+        let issuer = params.get('issuer') || '';
+        let label = rawLabel;
+        const colonIdx = rawLabel.indexOf(':');
+        if (colonIdx !== -1) {
+            if (!issuer) issuer = rawLabel.slice(0, colonIdx).trim();
+            label = rawLabel.slice(colonIdx + 1).trim();
+        }
+
+        let digits = 6;
+        const dRaw = params.get('digits');
+        if (dRaw !== null) {
+            const d = parseInt(dRaw, 10);
+            if (d >= 6 && d <= 8) digits = d;
+        }
+
+        let period = 30;
+        const pRaw = params.get('period');
+        if (pRaw !== null) {
+            const p = parseInt(pRaw, 10);
+            if (p > 0) period = p;
+        }
+
+        let algorithm = 'SHA1';
+        const aRaw = params.get('algorithm');
+        if (aRaw) {
+            const a = aRaw.toUpperCase();
+            if (['SHA1', 'SHA256', 'SHA512'].includes(a)) algorithm = a;
+        }
+
+        return {
+            secret: secret.replace(/\s+/g, '').toUpperCase(),
+            digits,
+            period,
+            algorithm,
+            issuer,
+            label,
+        };
+    }
+
+    // ---------- 颜色：剩余时间 → 色相 ----------
+    /**
+     * 剩余比例 1.0 → 蓝紫（230），到 0.5 → 绿（140），到 0.2 → 黄（50），到 0 → 红（0）
+     * 用分段线性插值，渐变更自然，不会"突然变红"。
+     */
+    function hueForRatio(ratio) {
+        // ratio: 0..1（剩余时间占比）
+        if (ratio >= 0.5) {
+            // 230 → 140
+            const t = (ratio - 0.5) / 0.5;
+            return 140 + (230 - 140) * t;
+        } else if (ratio >= 0.2) {
+            // 140 → 50
+            const t = (ratio - 0.2) / 0.3;
+            return 50 + (140 - 50) * t;
+        } else {
+            // 50 → 0
+            const t = ratio / 0.2;
+            return 0 + 50 * t;
+        }
+    }
+
+    // ---------- 主循环 ----------
+    function startLoop() {
+        cancelLoop();
+        lastCounter = -1n;
+        const tick = () => {
+            renderFrame().catch((e) => {
+                console.error(e);
+                showError('生成验证码失败');
+            });
+            rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+    }
+
+    function cancelLoop() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+    }
+
+    async function renderFrame() {
+        if (!config) return;
+        const { secret, digits, period, algorithm } = config;
+
+        const nowMs = Date.now();
+        const epoch = nowMs / 1000;
+        const counter = counterFromEpoch(epoch, period);
+
+        const elapsed = epoch % period;
+        const remainSec = period - elapsed;
+        const ratio = remainSec / period;
+
+        // 环形进度：dashoffset 从 0（满）到 周长（空）
+        const offset = RING_CIRCUMFERENCE * (1 - ratio);
+        ringProgress.style.strokeDashoffset = offset.toFixed(2);
+
+        // 倒计时颜色
+        const hue = hueForRatio(ratio);
+        document.documentElement.style.setProperty('--timer-hue', hue.toFixed(0));
+
+        secondsRemaining.textContent = Math.ceil(remainSec);
+
+        if (counter !== lastCounter) {
+            lastCounter = counter;
+            const keyBytes = base32ToBytes(secret);
+            const code = await hotp(keyBytes, counter, digits, algorithm);
+            const formatted = formatCode(code, digits);
+            tokenCode.textContent = formatted;
+            tokenCode.setAttribute('aria-label', `验证码 ${code}`);
+
+            // 翻牌动画（重启）
+            tokenCode.classList.remove('flip');
+            void tokenCode.offsetWidth;
+            tokenCode.classList.add('flip');
+        }
+    }
+
+    function formatCode(code, digits) {
+        if (digits === 6) return `${code.slice(0, 3)} ${code.slice(3)}`;
+        if (digits === 8) return `${code.slice(0, 4)} ${code.slice(4)}`;
         return code;
     }
-    
-    // 切换密钥可见性
+
+    // ---------- UI 行为 ----------
+    function handleSecretInput() {
+        clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(applyInput, 200);
+    }
+
+    function applyInput() {
+        const value = secretInput.value;
+        if (!value.trim()) {
+            resetUI();
+            return;
+        }
+
+        try {
+            const parsed = parseInput(value);
+            base32ToBytes(parsed.secret); // 预校验
+            config = parsed;
+
+            accountIssuer.textContent = parsed.issuer || '';
+            accountLabel.textContent = parsed.label
+                ? (parsed.issuer ? ` · ${parsed.label}` : parsed.label)
+                : '';
+            accountMeta.classList.toggle('is-empty', !parsed.issuer && !parsed.label);
+
+            tokenCard.hidden = false;
+            emptyState.hidden = true;
+            errorText.textContent = '';
+            startLoop();
+        } catch (e) {
+            config = null;
+            cancelLoop();
+            tokenCard.hidden = true;
+            emptyState.hidden = false;
+            errorText.textContent = e instanceof Error ? e.message : String(e);
+        }
+    }
+
+    function resetUI() {
+        config = null;
+        cancelLoop();
+        tokenCard.hidden = true;
+        emptyState.hidden = false;
+        errorText.textContent = '';
+        accountIssuer.textContent = '';
+        accountLabel.textContent = '';
+    }
+
     function toggleSecretVisibility() {
-        if (secretInput.type === 'password') {
-            secretInput.type = 'text';
-            toggleVisibilityBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
-        } else {
-            secretInput.type = 'password';
-            toggleVisibilityBtn.innerHTML = '<i class="fas fa-eye"></i>';
-        }
+        const showing = secretInput.type === 'text';
+        secretInput.type = showing ? 'password' : 'text';
+        const useEl = toggleVisibilityBtn.querySelector('use');
+        useEl.setAttribute('href', showing ? '#i-eye' : '#i-eye-off');
     }
-    
-    // 复制到剪贴板
-    function copyToClipboard() {
+
+    async function copyToClipboard() {
+        if (!config) return;
         const code = tokenCode.textContent.replace(/\s/g, '');
-        navigator.clipboard.writeText(code)
-            .then(() => _showNotification('已复制到剪贴板'))
-            .catch(err => console.error('复制失败:', err));
-    }
-    
-    // 切换主题
-    function toggleTheme() {
-        const isDarkMode = document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', isDarkMode);
-        
-        if (isDarkMode) {
-            themeToggle.querySelector('i').className = 'fas fa-sun';
-        } else {
-            themeToggle.querySelector('i').className = 'fas fa-moon';
+        if (!code || /^[—-]+$/.test(code)) return;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(code);
+            } else {
+                fallbackCopy(code);
+            }
+            flashCopied();
+        } catch (e) {
+            console.error('复制失败:', e);
+            try {
+                fallbackCopy(code);
+                flashCopied();
+            } catch {
+                showToast('复制失败，请手动选择复制', true);
+            }
         }
     }
-    
-    // 显示提示消息 (重命名)
-    function _showNotification(message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert position-fixed top-0 start-50 translate-middle-x mt-3';
-        alertDiv.style.zIndex = '1050';
-        alertDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${message}`;
-        
-        document.body.appendChild(alertDiv);
-        
-        // 添加动画效果
-        setTimeout(() => {
-            alertDiv.style.opacity = '1';
-        }, 10);
-        
-        setTimeout(() => {
-            alertDiv.style.opacity = '0';
-            alertDiv.style.transition = 'opacity 0.5s ease';
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 500);
-        }, 2000);
+
+    function flashCopied() {
+        tokenCard.classList.add('copied');
+        clearTimeout(copiedTimer);
+        copiedTimer = window.setTimeout(() => tokenCard.classList.remove('copied'), 1400);
     }
-});
+
+    function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) throw new Error('execCommand copy failed');
+    }
+
+    function setThemeIcon(isDark) {
+        const useEl = themeToggle.querySelector('use');
+        useEl.setAttribute('href', isDark ? '#i-sun' : '#i-moon');
+    }
+
+    // 同步浏览器 UI（地址栏/状态栏）颜色，避免手动切换主题后与页面不一致
+    function applyThemeColor(isDark) {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', isDark ? '#0f1014' : '#4e54c8');
+    }
+
+    function toggleTheme() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        try { localStorage.setItem('darkMode', String(isDark)); } catch { /* ignore */ }
+        setThemeIcon(isDark);
+        applyThemeColor(isDark);
+    }
+
+    function initTheme() {
+        let pref = null;
+        try { pref = localStorage.getItem('darkMode'); } catch { /* ignore */ }
+        const prefersDark = pref === null
+            ? window.matchMedia?.('(prefers-color-scheme: dark)').matches
+            : pref === 'true';
+        if (prefersDark) {
+            document.body.classList.add('dark-mode');
+        }
+        setThemeIcon(prefersDark);
+        applyThemeColor(prefersDark);
+    }
+
+    // ---------- Toast ----------
+    let toastTimer = 0;
+    function showToast(msg, isError = false) {
+        toast.textContent = msg;
+        toast.classList.toggle('error', isError);
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function showError(msg) {
+        errorText.textContent = msg;
+    }
+
+    // ---------- 初始化环形进度条 ----------
+    function initRing() {
+        ringProgress.style.strokeDasharray = RING_CIRCUMFERENCE.toFixed(3);
+        ringProgress.style.strokeDashoffset = '0';
+    }
+
+    // ---------- 后台暂停 ----------
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelLoop();
+        } else if (config) {
+            startLoop();
+        }
+    });
+
+    // ---------- 事件绑定 ----------
+    secretInput.addEventListener('input', handleSecretInput);
+    toggleVisibilityBtn.addEventListener('click', toggleSecretVisibility);
+
+    // 整张卡片可点击复制
+    tokenCard.addEventListener('click', copyToClipboard);
+    tokenCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            copyToClipboard();
+        }
+    });
+
+    themeToggle.addEventListener('click', toggleTheme);
+
+    initTheme();
+    initRing();
+})();
