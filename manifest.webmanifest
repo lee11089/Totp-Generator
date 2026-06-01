@@ -1,0 +1,27 @@
+{
+    "name": "TOTP 验证码",
+    "short_name": "TOTP",
+    "description": "纯前端 TOTP 两步验证码生成器，密钥不存储不上传，支持离线使用。",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#4e54c8",
+    "theme_color": "#4e54c8",
+    "lang": "zh-CN",
+    "categories": ["utilities", "security"],
+    "icons": [
+        {
+            "src": "icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "icon-maskable.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+        }
+    ]
+}

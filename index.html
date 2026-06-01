@@ -2,315 +2,166 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TOTP验证码生成器</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGU1NGM4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4Zjk0ZmI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEyOCIgZmlsbD0idXJsKCNncmFkKSIgLz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyMDAiIHI9IjEyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzMCIgLz4KICA8cGF0aCBkPSJNMjU2IDIwMCBMMjU2IDEyMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiAvPgogIDxwYXRoIGQ9Ik0yNTYgMjAwIEwzMjAgMjQwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIC8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzMDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQwIiByeD0iMjAiIGZpbGw9IndoaXRlIiAvPgogIDxyZWN0IHg9IjIzNiIgeT0iMzQwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dyYWQpIiAvPgo8L3N2Zz4=">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGU1NGM4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4Zjk0ZmI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEyOCIgZmlsbD0idXJsKCNncmFkKSIgLz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyMDAiIHI9IjEyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzMCIgLz4KICA8cGF0aCBkPSJNMjU2IDIwMCBMMjU2IDEyMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiAvPgogIDxwYXRoIGQ9Ik0yNTYgMjAwIEwzMjAgMjQwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIC8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzMDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQwIiByeD0iMjAiIGZpbGw9IndoaXRlIiAvPgogIDxyZWN0IHg9IjIzNiIgeT0iMzQwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dyYWQpIiAvPgo8L3N2Zz4=">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TOTP 验证码生成器</title>
+    <meta name="description" content="纯前端 TOTP 两步验证码生成器，密钥不存储不上传，支持 PWA 离线使用。">
+
+    <!-- Favicon（与页面 logo 同款：钟表轮廓 + 中央钥匙孔，渐变背景） -->
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <!-- 单条 theme-color，由脚本根据当前主题动态设置（初始为亮色） -->
     <meta name="theme-color" content="#4e54c8">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg-color: #f8f9fa;
-            --text-color: #212529;
-            --card-bg: #ffffff;
-            --primary: #4e54c8;
-            --secondary: #8f94fb;
-            --border-color: #dee2e6;
-            --muted-color: #6c757d;
-            --input-bg: #f8f9fa;
-            --input-border: #ced4da;
-            --label-color: #212529;
-            --footer-color: #6c757d;
-        }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, var(--bg-color) 0%, #f0f2f5 100%);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            padding: 0;
-            margin: 0;
-            transition: all 0.3s ease;
-        }
-
-        .dark-mode {
-            --bg-color: #121212;
-            --text-color: #f8f9fa;
-            --card-bg: #1e1e1e;
-            --primary: #6366f1;
-            --secondary: #818cf8;
-            --border-color: #2d2d2d;
-            --muted-color: #adb5bd;
-            --input-bg: #2d2d2d;
-            --input-border: #444;
-            --label-color: #e9ecef; 
-            --footer-color: #bdc3c7; 
-        }
-
-        .dark-mode body {
-            background: linear-gradient(135deg, var(--bg-color) 0%, #1a1a1a 100%);
-        }
-
-        .container {
-            max-width: 480px;
-            margin: 0 auto;
-            padding: 20px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .header h2 {
-            margin: 0;
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 1.75rem;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            border: none;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-        }
-
-        .form-label {
-            color: var(--label-color); 
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .form-control {
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            padding: 12px 15px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.25rem rgba(78, 84, 200, 0.25);
-        }
-
-        .dark-mode .form-control:focus {
-            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
-        }
-
-        .btn-toggle-visibility {
-            background-color: var(--input-bg);
-            color: var(--muted-color);
-            border: 1px solid var(--input-border);
-            border-left: none;
-            border-radius: 0 8px 8px 0;
-            padding: 0 15px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-toggle-visibility:hover {
-            color: var(--primary);
-        }
-
-        .token-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 30px 0;
-            text-align: center;
-        }
-
-        .token-code {
-            font-family: 'Courier New', monospace;
-            font-size: 48px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            color: var(--primary);
-            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-        }
-
-        .token-code:hover {
-            transform: scale(1.05);
-        }
-
-        .text-muted {
-            color: var(--muted-color) !important;
-            font-size: 0.9rem;
-        }
-
-        .timer-container {
-            width: 100%;
-            max-width: 300px;
-            margin-top: 20px;
-        }
-
-        .timer-bar {
-            height: 8px;
-            background-color: rgba(0,0,0,0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .dark-mode .timer-bar {
-            background-color: rgba(255,255,255,0.1);
-        }
-
-        .timer-progress {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
-            border-radius: 4px;
-            transition: width 1s linear;
-        }
-
-        .timer-text {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: var(--muted-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .timer-text i {
-            margin-right: 5px;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 20px 0;
-            font-size: 0.9rem;
-            color: var(--footer-color); 
-            border-top: 1px solid var(--border-color);
-            margin-top: 20px;
-        }
-
-        .theme-switch {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 1.2rem;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            background-color: rgba(0,0,0,0.05);
-        }
-
-        .dark-mode .theme-switch {
-            background-color: rgba(255,255,255,0.1);
-        }
-
-        .theme-switch:hover {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--muted-color);
-            z-index: 10;
-        }
-
-        .input-with-icon {
-            padding-left: 45px;
-        }
-
-        .alert {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        @media (max-width: 576px) {
-            .token-code {
-                font-size: 36px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- 防止暗色模式首屏闪烁（FOUC）：在首帧绘制前同步确定主题 -->
+    <script>
+        (function () {
+            try {
+                var pref = localStorage.getItem('darkMode');
+                var isDark = pref === null
+                    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                    : pref === 'true';
+                if (isDark) {
+                    document.body.classList.add('dark-mode');
+                    var meta = document.querySelector('meta[name="theme-color"]');
+                    if (meta) meta.setAttribute('content', '#0f1014');
+                }
+            } catch (e) { /* 忽略 */ }
+        })();
+    </script>
+
+    <!-- SVG 图标库（symbol 复用，零网络请求） -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <!-- 新 logo：盾牌 + 钟表，象征"安全 + 时间" -->
+            <symbol id="i-logo" viewBox="0 0 24 24">
+                <!-- 盾牌外形（实心） -->
+                <path d="M12 2 L20 4.8 V12.5 C20 17 16.6 19.8 12 21.5 C7.4 19.8 4 17 4 12.5 V4.8 Z"
+                      fill="currentColor"/>
+                <!-- 钟表（用 white 反白，让盾牌看起来是底色） -->
+                <circle cx="12" cy="12" r="4" fill="none" stroke="#ffffff" stroke-width="1.4"/>
+                <!-- 指针：12 点和 3 点 -->
+                <line x1="12" y1="12" x2="12" y2="9.4"  stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+                <line x1="12" y1="12" x2="14.4" y2="12" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+            </symbol>
+            <symbol id="i-key" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12.65 10A6 6 0 1 0 7 18a5.94 5.94 0 0 0 5.65-4H17v4h4v-4h2v-4H12.65ZM7 14a2 2 0 1 1 2-2 2 2 0 0 1-2 2Z"/>
+            </symbol>
+            <symbol id="i-eye" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 5-5 5 5 0 0 1-5 5Zm0-8a3 3 0 1 0 3 3 3 3 0 0 0-3-3Z"/>
+            </symbol>
+            <symbol id="i-eye-off" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92A11.85 11.85 0 0 0 23 12c-1.7-4.4-6-7.5-11-7.5-1.4 0-2.74.25-4 .7l2.17 2.17C10.74 7.13 11.35 7 12 7ZM2.71 3.16a1 1 0 0 0 0 1.41l2.06 2.06A11.66 11.66 0 0 0 1 12c1.7 4.4 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l2.85 2.85a1 1 0 1 0 1.41-1.41L4.13 3.16a1 1 0 0 0-1.42 0ZM12 17a5 5 0 0 1-5-5c0-.69.15-1.34.4-1.93l1.55 1.55c-.01.13-.05.25-.05.38a3.13 3.13 0 0 0 4.49 2.81l1.55 1.55c-.84.41-1.74.64-2.94.64Z"/>
+            </symbol>
+            <symbol id="i-moon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/>
+            </symbol>
+            <symbol id="i-sun" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 7a5 5 0 1 0 5 5 5 5 0 0 0-5-5Zm0-5a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0V3a1 1 0 0 0-1-1Zm0 17a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1ZM4.22 5.64a1 1 0 0 0 0 1.41L5.64 8.46a1 1 0 1 0 1.41-1.41L5.64 5.64a1 1 0 0 0-1.42 0Zm12.73 12.72a1 1 0 0 0 0 1.42l1.41 1.41a1 1 0 0 0 1.42-1.41L18.36 18.36a1 1 0 0 0-1.41 0ZM2 13h2a1 1 0 0 0 0-2H2a1 1 0 0 0 0 2Zm18-2h2a1 1 0 0 0 0-2h-2a1 1 0 0 0 0 2Zm-1.64-5.36a1 1 0 0 0-1.41 0L15.54 7.05a1 1 0 1 0 1.41 1.41l1.41-1.42a1 1 0 0 0 0-1.4ZM5.64 18.36a1 1 0 0 0-1.42 0l-1.41 1.41a1 1 0 0 0 1.41 1.42L5.64 19.78a1 1 0 0 0 0-1.42Z"/>
+            </symbol>
+            <symbol id="i-lock" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-6 9a2 2 0 1 1 2-2 2 2 0 0 1-2 2Zm3.1-9H8.9V6a3.1 3.1 0 0 1 6.2 0Z"/>
+            </symbol>
+            <symbol id="i-check" viewBox="0 0 24 24">
+                <path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="m5 12 5 5L20 7"/>
+            </symbol>
+        </defs>
+    </svg>
+
     <div class="container">
         <div class="header">
-            <h2><i class="fas fa-shield-alt"></i> TOTP验证码</h2>
-            <button id="themeToggle" class="theme-switch">
-                <i class="fas fa-moon"></i>
+            <h2>
+                <svg class="icon" aria-hidden="true"><use href="#i-logo"/></svg>
+                TOTP 验证码
+            </h2>
+            <button id="themeToggle" class="theme-switch" type="button" aria-label="切换主题">
+                <svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>
             </button>
         </div>
 
         <div class="card">
-            <div class="mb-4">
-                <label for="secretInput" class="form-label">输入密钥</label>
-                <div class="input-group">
-                    <i class="fas fa-key input-icon"></i>
-                    <input type="password" class="form-control input-with-icon" id="secretInput" 
-                           placeholder="输入密钥" autocomplete="off">
-                    <button class="btn btn-toggle-visibility" type="button" id="toggleVisibility">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
+            <label for="secretInput" class="form-label">输入密钥或 otpauth:// URI</label>
+            <div class="input-group">
+                <span class="input-icon" aria-hidden="true">
+                    <svg class="icon"><use href="#i-key"/></svg>
+                </span>
+                <input type="password"
+                       class="form-control input-with-icon"
+                       id="secretInput"
+                       placeholder="例如 JBSWY3DPEHPK3PXP"
+                       autocomplete="off"
+                       autocapitalize="off"
+                       autocorrect="off"
+                       spellcheck="false">
+                <button class="btn-toggle-visibility" type="button" id="toggleVisibility" aria-label="显示或隐藏密钥">
+                    <svg class="icon"><use href="#i-eye"/></svg>
+                </button>
             </div>
+            <div id="errorText" class="error-text" role="alert" aria-live="polite"></div>
         </div>
 
-        <div id="tokenCard" class="card" style="display: none;">
+        <!-- 空状态：未输入密钥时展示 -->
+        <div id="emptyState" class="empty-state">
+            <div class="empty-illustration" aria-hidden="true">
+                <svg class="icon"><use href="#i-logo"/></svg>
+            </div>
+            <p class="empty-title">粘贴密钥即可生成</p>
+            <p class="empty-hint">用完关掉页面，密钥不会被保存</p>
+        </div>
+
+        <!-- 验证码卡片 -->
+        <div id="tokenCard" class="card token-card" hidden role="button" tabindex="0" aria-label="点击复制验证码">
+            <div class="account-meta" id="accountMeta">
+                <span id="accountIssuer" class="account-issuer"></span>
+                <span id="accountLabel" class="account-label"></span>
+            </div>
+
             <div class="token-display">
-                <div id="tokenCode" class="token-code">000 000</div>
-                <div class="text-muted">点击复制验证码</div>
-                <div class="timer-container">
-                    <div class="timer-bar">
-                        <div id="timerProgress" class="timer-progress" style="width: 100%;"></div>
+                <!-- 环形进度条 -->
+                <div class="ring-wrapper">
+                    <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+                        <circle class="ring-track" cx="60" cy="60" r="54" />
+                        <circle id="ringProgress" class="ring-progress" cx="60" cy="60" r="54" />
+                    </svg>
+                    <div class="ring-content">
+                        <div id="tokenCode" class="token-code" aria-live="polite">— — —</div>
+                        <div class="token-meta">
+                            <span id="secondsRemaining">30</span>s
+                        </div>
                     </div>
-                    <div class="timer-text">
-                        <i class="fas fa-clock"></i> 剩余 <span id="secondsRemaining">30</span> 秒
-                    </div>
+                </div>
+
+                <div class="token-hint">
+                    <span class="hint-default">点击卡片复制</span>
+                    <span class="hint-success">
+                        <svg class="icon"><use href="#i-check"/></svg>
+                        <span>已复制</span>
+                    </span>
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            <i class="fas fa-lock"></i> 本工具在浏览器中运行，不会存储或传输您的密钥
+            <svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>
+            <span>完全在浏览器中运行，密钥不会被存储或上传</span>
         </div>
     </div>
 
-    <!-- 加载CryptoJS库，用于HMAC计算 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="script.js"></script>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js" defer></script>
+
+    <!-- PWA Service Worker 注册 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => { /* 忽略注册失败 */ });
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,479 @@
+/* ---------- 设计令牌 ---------- */
+:root {
+    --bg-color: #f8f9fa;
+    --bg-gradient-end: #f0f2f5;
+    --text-color: #212529;
+    --card-bg: #ffffff;
+    --card-border: transparent;
+    --primary: #4e54c8;
+    --secondary: #8f94fb;
+    --border-color: #e2e5ea;
+    --muted-color: #6c757d;
+    --input-bg: #f8f9fa;
+    --input-border: #ced4da;
+    --label-color: #212529;
+    --footer-color: #6c757d;
+    --danger: #dc2626;          /* WCAG AA 对比度达标 */
+    --success: #16a34a;
+    --shadow-card: 0 4px 24px rgba(20, 24, 50, 0.08);
+    --ring-track: rgba(0, 0, 0, 0.08);
+    /* 倒计时颜色，由 JS 动态修改 */
+    --timer-hue: 230;
+    --timer-color: hsl(var(--timer-hue) 70% 55%);
+}
+
+body.dark-mode {
+    --bg-color: #0f1014;
+    --bg-gradient-end: #15161c;
+    --text-color: #f1f3f5;
+    --card-bg: #1f2128;          /* 比之前的 #1e1e1e 提亮，分层更清楚 */
+    --card-border: rgba(255, 255, 255, 0.06);
+    --primary: #818cf8;
+    --secondary: #a5b4fc;
+    --border-color: #2a2d36;
+    --muted-color: #9aa0aa;
+    --input-bg: #16181e;
+    --input-border: #353945;
+    --label-color: #e9ecef;
+    --footer-color: #9aa0aa;
+    --danger: #f87171;
+    --success: #4ade80;
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --ring-track: rgba(255, 255, 255, 0.08);
+    --timer-color: hsl(var(--timer-hue) 80% 70%);
+}
+
+/* ---------- 基础 ---------- */
+* { box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, var(--bg-color) 0%, var(--bg-gradient-end) 100%);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+}
+
+button {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.icon {
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    vertical-align: -0.15em;
+    fill: currentColor;
+}
+
+.container {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    padding: max(20px, env(safe-area-inset-top)) 20px env(safe-area-inset-bottom);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- 头部 ---------- */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header h2 {
+    margin: 0;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.02em;
+}
+
+.header h2 .icon {
+    width: 1.2em;
+    height: 1.2em;
+}
+
+.theme-switch {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+body.dark-mode .theme-switch {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.theme-switch:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* ---------- 卡片 ---------- */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+    transition: background-color 0.3s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* ---------- 输入区 ---------- */
+.form-label {
+    display: block;
+    color: var(--label-color);
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+}
+
+.form-control {
+    flex: 1;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    border-radius: 10px 0 0 10px;
+    padding: 12px 14px 12px 42px;
+    font-size: 1rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-color);
+    z-index: 2;
+    display: inline-flex;
+    pointer-events: none;
+}
+
+.btn-toggle-visibility {
+    background-color: var(--input-bg);
+    color: var(--muted-color);
+    border: 1px solid var(--input-border);
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    padding: 0 14px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    min-width: 44px;
+}
+
+.btn-toggle-visibility:hover {
+    color: var(--primary);
+}
+
+.error-text {
+    color: var(--danger);
+    font-size: 0.9rem;
+    margin-top: 8px;
+    min-height: 1.2rem;
+}
+
+/* ---------- 空状态 ---------- */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted-color);
+}
+
+.empty-illustration {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.empty-title {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-color);
+    margin: 0 0 6px;
+}
+
+.empty-hint {
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* ---------- 验证码卡片 ---------- */
+.token-card {
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.token-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(20, 24, 50, 0.12);
+}
+
+.token-card:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.token-card.copied {
+    animation: copyFlash 0.6s ease;
+}
+
+@keyframes copyFlash {
+    0%, 100% { box-shadow: var(--shadow-card); }
+    30%      { box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 60%, transparent), var(--shadow-card); }
+}
+
+.account-meta {
+    text-align: center;
+    margin-bottom: 16px;
+    min-height: 1.2rem;
+    font-size: 0.95rem;
+}
+
+.account-meta:empty,
+.account-meta.is-empty {
+    display: none;
+}
+
+.account-issuer {
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.account-label {
+    color: var(--muted-color);
+    margin-left: 6px;
+}
+
+.token-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0 4px;
+}
+
+/* ---------- 环形进度条 ---------- */
+.ring-wrapper {
+    position: relative;
+    width: 220px;
+    height: 220px;
+}
+
+.ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.ring-track {
+    fill: none;
+    stroke: var(--ring-track);
+    stroke-width: 6;
+}
+
+.ring-progress {
+    fill: none;
+    stroke: var(--timer-color);
+    stroke-width: 6;
+    stroke-linecap: round;
+    /* 周长 = 2π × 54 ≈ 339.292，由 JS 设置 stroke-dashoffset */
+    stroke-dasharray: 339.292;
+    stroke-dashoffset: 0;
+    transition: stroke 0.3s ease;
+    will-change: stroke-dashoffset;
+}
+
+.ring-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.token-code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 2rem;             /* 32px，比之前 48px 小 */
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.token-code.flip {
+    animation: flipIn 0.4s ease;
+}
+
+@keyframes flipIn {
+    0%   { transform: rotateX(80deg); opacity: 0; }
+    100% { transform: rotateX(0);     opacity: 1; }
+}
+
+.token-meta {
+    color: var(--muted-color);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.token-meta #secondsRemaining {
+    color: var(--timer-color);
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+/* ---------- 复制提示 ---------- */
+.token-hint {
+    position: relative;
+    font-size: 0.85rem;
+    color: var(--muted-color);
+    height: 1.4em;
+    width: 100%;
+    line-height: 1.4em;
+}
+
+.hint-default,
+.hint-success {
+    position: absolute;
+    inset: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.hint-success {
+    color: var(--success);
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.hint-success .icon {
+    width: 0.95em;
+    height: 0.95em;
+}
+
+.token-card.copied .hint-default {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.token-card.copied .hint-success {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ---------- 页脚 ---------- */
+.footer {
+    text-align: center;
+    padding: 16px 0;
+    font-size: 0.85rem;
+    color: var(--footer-color);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.footer span {
+    white-space: nowrap;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+    position: fixed;
+    top: max(20px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background-color: var(--primary);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 1050;
+    font-size: 0.9rem;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast.error {
+    background-color: var(--danger);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 420px) {
+    .ring-wrapper {
+        width: 200px;
+        height: 200px;
+    }
+    .token-code {
+        font-size: 1.75rem;
+        letter-spacing: 1.5px;
+    }
+}
+
+/* 减少动效 */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
